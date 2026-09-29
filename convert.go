@@ -117,3 +117,158 @@ func formatNum(f float64, decimals int) string {
 	}
 	return res
 }
+
+// ParseAmount foydalanuvchidan kelgan oddiy summani o'qiydi.
+// Masalan: 100, 500.5, 1 000, 1,000.50
+func ParseAmount(text string) (float64, bool) {
+	text = strings.TrimSpace(text)
+	text = strings.ReplaceAll(text, " ", "")
+	text = strings.ReplaceAll(text, "_", "")
+
+	// O'zbek foydalanuvchilari verguldan ham foydalanishi mumkin.
+	text = strings.Replace(text, ",", ".", 1)
+
+	if text == "" {
+		return 0, false
+	}
+
+	amount, err := strconv.ParseFloat(text, 64)
+	if err != nil || amount < 0 || math.IsNaN(amount) || math.IsInf(amount, 0) {
+		return 0, false
+	}
+
+	return amount, true
+}
+
+type ConversionQuery struct {
+	Amount float64
+	From   string
+	To     string
+}
+
+// ParseConversionQuery quyidagilarni tushunadi:
+//
+// 100 USD -> UZS
+// 100 USD → UZS
+// 500 eur to uzs
+// 100 usd uzs
+func ParseConversionQuery(text string) (ConversionQuery, bool) {
+	text = strings.ToLower(strings.TrimSpace(text))
+
+	text = strings.ReplaceAll(text, "→", "->")
+	text = strings.ReplaceAll(text, "=>", "->")
+
+	// "100 usd to uzs"
+	text = strings.ReplaceAll(text, " to ", " -> ")
+
+	parts := strings.Split(text, "->")
+
+	if len(parts) != 2 {
+		return ConversionQuery{}, false
+	}
+
+	left := strings.TrimSpace(parts[0])
+	right := strings.TrimSpace(parts[1])
+
+	// Chap tomondan summa + source currency ajratamiz.
+	m := queryRe.FindStringSubmatch(left)
+	if m == nil {
+		return ConversionQuery{}, false
+	}
+
+	amount, err := strconv.ParseFloat(
+		strings.Replace(m[1], ",", ".", 1),
+		64,
+	)
+	if err != nil || amount < 0 {
+		return ConversionQuery{}, false
+	}
+
+	fromWords := strings.Fields(m[2])
+	toWords := strings.Fields(right)
+
+	if len(fromWords) == 0 || len(toWords) == 0 {
+		return ConversionQuery{}, false
+	}
+
+	from, ok := aliases[fromWords[0]]
+	if !ok {
+		return ConversionQuery{}, false
+	}
+
+	to, ok := aliases[toWords[0]]
+	if !ok {
+		return ConversionQuery{}, false
+	}
+
+	return ConversionQuery{
+		Amount: amount,
+		From:   from,
+		To:     to,
+	}, true
+}
+
+// ConvertPair ikki valyuta o'rtasidagi konvertatsiyani hisoblaydi.
+func ConvertPair(
+	amount float64,
+	from string,
+	to string,
+	rates map[string]Rate,
+) string {
+	if amount < 0 {
+		return "❌ Summa manfiy bo‘lishi mumkin emas."
+	}
+
+	if from == to {
+		return fmt.Sprintf(
+			"🔄 Konvertatsiya\n\n%s %s = %s %s",
+			formatNum(amount, 2),
+			from,
+			formatNum(amount, 2),
+			to,
+		)
+	}
+
+	// Avval source valyutani UZS ga o'tkazamiz.
+	var amountUZS float64
+
+	if from == "UZS" {
+		amountUZS = amount
+	} else {
+		r, ok := rates[from]
+		if !ok {
+			return "❌ " + from + " kursi topilmadi."
+		}
+
+		amountUZS = amount * r.UZS
+	}
+
+	// UZS dan target valyutaga o'tkazamiz.
+	var result float64
+
+	if to == "UZS" {
+		result = amountUZS
+	} else {
+		r, ok := rates[to]
+		if !ok {
+			return "❌ " + to + " kursi topilmadi."
+		}
+
+		if r.UZS == 0 {
+			return "❌ " + to + " kursi noto‘g‘ri."
+		}
+
+		result = amountUZS / r.UZS
+	}
+
+	return fmt.Sprintf(
+		"🔄 Konvertatsiya\n\n"+
+			"💰 %s %s\n"+
+			"⬇️\n"+
+			"💵 %s %s",
+		formatNum(amount, 2),
+		from,
+		formatNum(result, 2),
+		to,
+	)
+}
