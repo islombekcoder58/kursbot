@@ -102,7 +102,6 @@ func main() {
 			menu.Text("🔄 Konvertatsiya"),
 		),
 		menu.Row(
-			menu.Text("💎 Premium"),
 			menu.Text("ℹ️ Yordam"),
 		),
 	)
