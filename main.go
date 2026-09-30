@@ -102,10 +102,10 @@ func main() {
 			menu.Text("🔄 Konvertatsiya"),
 		),
 		menu.Row(
+			menu.Text("💎 Premium"),
 			menu.Text("ℹ️ Yordam"),
 		),
 	)
-
 	// /start
 	bot.Handle("/start", func(c tele.Context) error {
 		if c.Sender() != nil {
@@ -134,6 +134,24 @@ func main() {
 		return c.Send(
 			"🔄 Konvertatsiya\n\nAvval valyutalarni tanlang:",
 			conversionKeyboard(),
+		)
+	})
+	// 💎 Premium
+	bot.Handle("💎 Premium", func(c tele.Context) error {
+		return c.Send(
+			`💎 KursBot Premium
+
+✨ Premium imkoniyatlar:
+
+⭐ 20+ valyuta
+📈 Kurslar tarixi
+🔔 Kurs o‘zgarishi haqida bildirishnomalar
+❤️ Sevimli valyutalar
+⚡ Tezkor konvertatsiya
+🚫 Reklamasiz foydalanish
+
+Premium bilan KursBot imkoniyatlarini yanada kengaytiring!`,
+			premiumKeyboard(),
 		)
 	})
 
@@ -364,4 +382,25 @@ func startConversion(
 			"Summani yuboring.\n\n" +
 			"Masalan: 100",
 	)
+}
+
+func premiumKeyboard() *tele.ReplyMarkup {
+	kb := &tele.ReplyMarkup{}
+
+	kb.Inline(
+		kb.Row(
+			tele.Btn{
+				Unique: "premium_subscribe",
+				Text:   "💳 Obuna olish",
+			},
+		),
+		kb.Row(
+			tele.Btn{
+				Unique: "premium_back",
+				Text:   "⬅️ Orqaga",
+			},
+		),
+	)
+
+	return kb
 }
