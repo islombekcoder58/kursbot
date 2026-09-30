@@ -136,23 +136,23 @@ func main() {
 		)
 	})
 	// 💎 Premium
-	bot.Handle("💎 Premium", func(c tele.Context) error {
-		return c.Send(
-			`💎 KursBot Premium
+// 	bot.Handle("💎 Premium", func(c tele.Context) error {
+// 		return c.Send(
+// 			`💎 KursBot Premium
 
-✨ Premium imkoniyatlar:
+// ✨ Premium imkoniyatlar:
 
-⭐ 20+ valyuta
-📈 Kurslar tarixi
-🔔 Kurs o‘zgarishi haqida bildirishnomalar
-❤️ Sevimli valyutalar
-⚡ Tezkor konvertatsiya
-🚫 Reklamasiz foydalanish
+// ⭐ 20+ valyuta
+// 📈 Kurslar tarixi
+// 🔔 Kurs o‘zgarishi haqida bildirishnomalar
+// ❤️ Sevimli valyutalar
+// ⚡ Tezkor konvertatsiya
+// 🚫 Reklamasiz foydalanish
 
-Premium bilan KursBot imkoniyatlarini yanada kengaytiring!`,
-			premiumKeyboard(),
-		)
-	})
+// Premium bilan KursBot imkoniyatlarini yanada kengaytiring!`,
+// 			premiumKeyboard(),
+// 		)
+// 	})
 
 	// ℹ️ Yordam
 	bot.Handle("ℹ️ Yordam", func(c tele.Context) error {
