@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -105,6 +106,7 @@ func main() {
 			menu.Text("ℹ️ Yordam"),
 		),
 	)
+
 	// /start
 	bot.Handle("/start", func(c tele.Context) error {
 		if c.Sender() != nil {
@@ -119,7 +121,7 @@ func main() {
 		return sendRates(c, store)
 	})
 
-	// /kurs ham saqlanadi
+	// /kurs
 	bot.Handle("/kurs", func(c tele.Context) error {
 		return sendRates(c, store)
 	})
@@ -135,24 +137,6 @@ func main() {
 			conversionKeyboard(),
 		)
 	})
-	// 💎 Premium
-// 	bot.Handle("💎 Premium", func(c tele.Context) error {
-// 		return c.Send(
-// 			`💎 KursBot Premium
-
-// ✨ Premium imkoniyatlar:
-
-// ⭐ 20+ valyuta
-// 📈 Kurslar tarixi
-// 🔔 Kurs o‘zgarishi haqida bildirishnomalar
-// ❤️ Sevimli valyutalar
-// ⚡ Tezkor konvertatsiya
-// 🚫 Reklamasiz foydalanish
-
-// Premium bilan KursBot imkoniyatlarini yanada kengaytiring!`,
-// 			premiumKeyboard(),
-// 		)
-// 	})
 
 	// ℹ️ Yordam
 	bot.Handle("ℹ️ Yordam", func(c tele.Context) error {
@@ -217,14 +201,11 @@ func main() {
 	bot.Handle(tele.OnText, func(c tele.Context) error {
 		text := strings.TrimSpace(c.Text())
 
-		// Menyu tugmalari yana shu handlerga tushib qolsa,
-		// xatolik xabarini chiqarmaymiz.
 		switch text {
 		case "💵 Kurslar", "🔄 Konvertatsiya", "ℹ️ Yordam":
 			return nil
 		}
 
-		// Inline orqali valyuta juftligi tanlangan bo‘lsa
 		if c.Sender() != nil {
 			if state, ok := states.get(c.Sender().ID); ok {
 				amount, ok := ParseAmount(text)
@@ -266,10 +247,7 @@ func main() {
 			return c.Send(ConvertPair(q.Amount, q.From, q.To, rates), menu)
 		}
 
-		// Eski formatlar:
-		// 500 usd
-		// 2 mln so'm
-		// 100 yevro
+		// Eski formatlar
 		q, ok := ParseQuery(text)
 		if !ok {
 			return c.Send(
@@ -294,7 +272,32 @@ func main() {
 		return c.Send(Convert(q, rates), menu)
 	})
 
+	// =========================================================
+	// RENDER WEB SERVICE UCHUN HEALTH SERVER
+	// =========================================================
+
+	go func() {
+		port := os.Getenv("PORT")
+
+		if port == "" {
+			port = "8080"
+		}
+
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("KursBot is running"))
+		})
+
+		log.Println("HTTP server :" + port + " portda ishga tushdi")
+
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Fatal("HTTP server xatosi:", err)
+		}
+	}()
+
 	log.Println("Bot ishga tushdi")
+
+	// Telegram polling
 	bot.Start()
 }
 
@@ -368,7 +371,6 @@ func startConversion(
 		return nil
 	}
 
-	// Telegramdagi loading holatini olib tashlash.
 	_ = c.Respond()
 
 	states.set(c.Sender().ID, conversionState{
@@ -381,25 +383,4 @@ func startConversion(
 			"Summani yuboring.\n\n" +
 			"Masalan: 100",
 	)
-}
-
-func premiumKeyboard() *tele.ReplyMarkup {
-	kb := &tele.ReplyMarkup{}
-
-	kb.Inline(
-		kb.Row(
-			tele.Btn{
-				Unique: "premium_subscribe",
-				Text:   "💳 Obuna olish",
-			},
-		),
-		kb.Row(
-			tele.Btn{
-				Unique: "premium_back",
-				Text:   "⬅️ Orqaga",
-			},
-		),
-	)
-
-	return kb
 }
